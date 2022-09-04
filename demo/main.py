@@ -14,11 +14,13 @@ from .train import create_train_state, train_step, cross_replica_mean, test_step
 
 def cli():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--resnet_impl', type=str)
     parser.add_argument('--batch_size', type=int)
     parser.add_argument('--epochs', type=int)
     parser.add_argument('--learning_rate', type=float)
     args = parser.parse_args()
 
+    resnet_impl = args.resnet_impl
     batch_size = args.batch_size
     epochs = args.epochs
     learning_rate = args.learning_rate
@@ -27,7 +29,7 @@ def cli():
     assert batch_size % device_count == 0, f'batch_size should be divisible by {device_count}'
 
     root = 'torchvision/datasets'
-    specimen = jnp.empty((28, 28, 1))
+    specimen = jnp.empty((1, 28, 28, 1))
 
     transform = T.Compose([
         T.ToTensor(),
@@ -40,7 +42,7 @@ def cli():
     key = jax.random.PRNGKey(42)
     key_init, key = jax.random.split(key)
     num_classes = 10
-    state = create_train_state(key_init, num_classes, learning_rate, specimen)
+    state = create_train_state(key_init, resnet_impl, num_classes, learning_rate, specimen)
     state = replicate(state)
 
 

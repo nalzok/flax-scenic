@@ -7,15 +7,24 @@ import flax
 from flax.training import train_state
 import optax
 
-from .resnet import ResNet18
-
 
 class TrainState(train_state.TrainState):
     batch_stats: flax.core.FrozenDict[str, jnp.ndarray]
 
 
-def create_train_state(key: Any, num_classes: int, learning_rate: float, specimen: jnp.ndarray) -> TrainState:
-    net = ResNet18(num_classes=num_classes)
+def create_train_state(key: Any, resnet_impl: str, num_classes: int, learning_rate: float, specimen: jnp.ndarray) -> TrainState:
+    if resnet_impl == 'flax': 
+        from .flax_resnet import ResNet18
+        net = ResNet18(num_classes=num_classes)
+    elif resnet_impl == 'scenic':
+        from .scenic_resnet import ResNet
+        net = ResNet(num_outputs=num_classes, num_layers=18)
+    else:
+        raise ValueError(f'Unknown ResNet Implementation {resnet_impl}')
+
+    tabulate_key, key = jax.random.split(key)
+    print(net.tabulate(tabulate_key, specimen))
+
     variables = net.init(key, specimen, True)
     tx = optax.adam(learning_rate)
     state = TrainState.create(
